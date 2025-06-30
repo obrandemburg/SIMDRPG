@@ -1,11 +1,14 @@
-﻿public class SimuladorCombate
+﻿using SIMDRPG;
+using System.Numerics;
+
+public class SimuladorCombate
 {
     private static Random gerador = new Random(42);
 
     public static int CalcularDano(Personagem atacante, Personagem defensor)
     {
-        if (!atacante.Vivo || !defensor.Vivo)
-            return 0;
+        //if (!atacante.Vivo || !defensor.Vivo)
+            //return 0;
 
         // Dano base = Ataque - Defesa (mínimo 1)
         int danoBase = Math.Max(1, atacante.Ataque - defensor.Defesa);
@@ -20,7 +23,18 @@
 
         return danoBase;
     }
+    public static int CalcularDanoSIMD()
+    {
 
+    }
+
+    public static int SimularRodadaCombateSIMD(PersonagemVetorizado atacantes, PersonagemVetorizado defensores)
+    {
+
+        int danoTotal = 0;
+        
+
+    }
     public static int SimularRodadaCombate(Personagem[] atacantes, Personagem[] defensores)
     {
         int danoTotal = 0;
@@ -48,7 +62,7 @@
                     ChanceCritico = gerador.Next(15, 25), // 15-24% crítico
                     MultCritico = gerador.Next(180, 220), // 1.8x-2.2x crítico
                     Vida = gerador.Next(100, 150),
-                    Vivo = true
+                    //Vivo = true
                 };
             }
             else // defensor
@@ -60,7 +74,7 @@
                     ChanceCritico = gerador.Next(10, 20),
                     MultCritico = gerador.Next(150, 200),
                     Vida = gerador.Next(120, 180),      // mais vida
-                    Vivo = true
+                    //Vivo = true
                 };
             }
         }

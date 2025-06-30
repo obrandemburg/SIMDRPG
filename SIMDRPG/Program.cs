@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using SIMDRPG;
+using System.Diagnostics;
 
 class Program
 {
@@ -8,6 +9,11 @@ class Program
 
         Personagem[] atacantes = SimuladorCombate.GerarExercito(tamanhoExercito, "atacante");
         Personagem[] defensores = SimuladorCombate.GerarExercito(tamanhoExercito, "defensor");
+
+        PersonagemVetorizado atacantesSIMD = new PersonagemVetorizado(atacantes);
+        PersonagemVetorizado defensoresSIMD = new PersonagemVetorizado(defensores);
+
+
 
         Console.WriteLine("=== SIMULAÇÃO DE BATALHA ÉPICA ===");
         Console.WriteLine($"Exércitos: {tamanhoExercito:N0} vs {tamanhoExercito:N0}");

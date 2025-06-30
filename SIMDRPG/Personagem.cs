@@ -8,5 +8,5 @@ public struct Personagem
     public int ChanceCritico; // 0-100
     public int MultCritico;   // multiplicador de crítico (ex: 200 = 2x)
     public int Vida;
-    public bool Vivo;
+    //public bool Vivo;
 }
