@@ -1,7 +1,7 @@
 ﻿
 namespace SIMDRPG
 {
-    class PersonagemVetorizado
+    public class PersonagemVetorizado
     {
         public int[] Ataque;
         public int[] Defesa;

@@ -4,44 +4,82 @@ using System.Numerics;
 public class SimuladorCombate
 {
     private static Random gerador = new Random(42);
+    const int tamanhoExercito = 500_000;
 
-    public static int CalcularDano(Personagem atacante, Personagem defensor)
+    // BUG 1 CORRIGIDO: Removido 'static int i' e 'static int indiceCritico' que eram desnecessários e causavam bugs.
+
+    // Vetor de números aleatórios pré-calculados.
+    static int[] vetorEhCritico = new int[tamanhoExercito];
+
+    public static void PreGerarResultadosCriticos()
     {
-        //if (!atacante.Vivo || !defensor.Vivo)
-            //return 0;
-
-        // Dano base = Ataque - Defesa (mínimo 1)
-        int danoBase = Math.Max(1, atacante.Ataque - defensor.Defesa);
-
-        // Verificar crítico
-        bool ehCritico = gerador.Next(0, 100) < atacante.ChanceCritico;
-
-        if (ehCritico)
+        Console.WriteLine("Pré-gerando resultados de acertos críticos...");
+        for (int i = 0; i < tamanhoExercito; i++)
         {
-            danoBase = (danoBase * atacante.MultCritico) / 100;
+            vetorEhCritico[i] = gerador.Next(0, 100);
+        }
+        Console.WriteLine("Resultados gerados.");
+    }
+
+    // A função CalcularDano foi removida pois sua lógica foi movida para dentro
+    // de SimularRodadaCombate para garantir o uso correto do índice 'i'.
+
+    public static long SimularRodadaCombateSIMD(PersonagemVetorizado atacantes, PersonagemVetorizado defensores)
+    {
+        long danoTotalAcumulado = 0;
+        int i = 0;
+        int bloco = Vector<int>.Count;
+        Vector<int> cem = new Vector<int>(100);
+
+        // Loop SIMD principal
+        for (; i <= atacantes.Ataque.Length - bloco; i += bloco)
+        {
+            var vAtaque = new Vector<int>(atacantes.Ataque, i);
+            var vChanceCritico = new Vector<int>(atacantes.ChanceCritico, i);
+            var vDefesa = new Vector<int>(defensores.Defesa, i);
+            var vMultCritico = new Vector<int>(atacantes.MultCritico, i);
+            var vNumerosAleatorios = new Vector<int>(vetorEhCritico, i);
+
+            var vDanoBase = Vector.Max(Vector<int>.One, vAtaque - vDefesa);
+            var vMascaraCritico = Vector.LessThan(vNumerosAleatorios, vChanceCritico);
+            var vDanoCritico = Vector.Divide(Vector.Multiply(vDanoBase, vMultCritico), cem);
+            var vDanoFinal = Vector.ConditionalSelect(vMascaraCritico, vDanoCritico, vDanoBase);
+
+            // OTIMIZAÇÃO: Usando a forma de acumulação recomendada
+            danoTotalAcumulado += Vector.Sum(vDanoFinal);
         }
 
-        return danoBase;
+        // Loop de limpeza (restante)
+        for (; i < atacantes.Ataque.Length; i++)
+        {
+            int danoBase = Math.Max(1, atacantes.Ataque[i] - defensores.Defesa[i]);
+            // BUG 2 CORRIGIDO: A lógica agora é a mesma do SIMD (menor que)
+            if (vetorEhCritico[i] < atacantes.ChanceCritico[i])
+            {
+                danoBase = (danoBase * atacantes.MultCritico[i]) / 100;
+            }
+            danoTotalAcumulado += danoBase;
+        }
+
+        return danoTotalAcumulado;
     }
-    public static int CalcularDanoSIMD()
+
+    public static long SimularRodadaCombate(Personagem[] atacantes, Personagem[] defensores)
     {
+        long danoTotal = 0;
 
-    }
-
-    public static int SimularRodadaCombateSIMD(PersonagemVetorizado atacantes, PersonagemVetorizado defensores)
-    {
-
-        int danoTotal = 0;
-        
-
-    }
-    public static int SimularRodadaCombate(Personagem[] atacantes, Personagem[] defensores)
-    {
-        int danoTotal = 0;
-
+        // BUG 1 CORRIGIDO: A lógica de cálculo foi movida para cá para usar o índice 'i' diretamente,
+        // garantindo consistência com a versão SIMD.
         for (int i = 0; i < atacantes.Length && i < defensores.Length; i++)
         {
-            danoTotal += CalcularDano(atacantes[i], defensores[i]);
+            int danoBase = Math.Max(1, atacantes[i].Ataque - defensores[i].Defesa);
+
+            // BUG 2 CORRIGIDO: A lógica de comparação agora é idêntica à do SIMD
+            if (vetorEhCritico[i] < atacantes[i].ChanceCritico)
+            {
+                danoBase = (danoBase * atacantes[i].MultCritico) / 100;
+            }
+            danoTotal += danoBase;
         }
 
         return danoTotal;
@@ -50,35 +88,31 @@ public class SimuladorCombate
     public static Personagem[] GerarExercito(int tamanho, string tipo)
     {
         Personagem[] exercito = new Personagem[tamanho];
-
         for (int i = 0; i < tamanho; i++)
         {
             if (tipo == "atacante")
             {
                 exercito[i] = new Personagem
                 {
-                    Ataque = gerador.Next(80, 120),     // 80-119 ataque
-                    Defesa = gerador.Next(20, 40),      // 20-39 defesa 
-                    ChanceCritico = gerador.Next(15, 25), // 15-24% crítico
-                    MultCritico = gerador.Next(180, 220), // 1.8x-2.2x crítico
+                    Ataque = gerador.Next(80, 120),
+                    Defesa = gerador.Next(20, 40),
+                    ChanceCritico = gerador.Next(15, 25),
+                    MultCritico = gerador.Next(180, 220),
                     Vida = gerador.Next(100, 150),
-                    //Vivo = true
                 };
             }
             else // defensor
             {
                 exercito[i] = new Personagem
                 {
-                    Ataque = gerador.Next(60, 80),      // menos ataque
-                    Defesa = gerador.Next(40, 70),      // mais defesa
+                    Ataque = gerador.Next(60, 80),
+                    Defesa = gerador.Next(40, 70),
                     ChanceCritico = gerador.Next(10, 20),
                     MultCritico = gerador.Next(150, 200),
-                    Vida = gerador.Next(120, 180),      // mais vida
-                    //Vivo = true
+                    Vida = gerador.Next(120, 180),
                 };
             }
         }
-
         return exercito;
     }
 }
