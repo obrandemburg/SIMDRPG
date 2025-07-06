@@ -4,11 +4,9 @@ using System.Numerics;
 public class SimuladorCombate
 {
     private static Random gerador = new Random(42);
-    const int tamanhoExercito = 500_000;
+    const int tamanhoExercito = 10_000_000;
 
-    // BUG 1 CORRIGIDO: Removido 'static int i' e 'static int indiceCritico' que eram desnecessários e causavam bugs.
 
-    // Vetor de números aleatórios pré-calculados.
     static int[] vetorEhCritico = new int[tamanhoExercito];
 
     public static void PreGerarResultadosCriticos()
@@ -21,8 +19,6 @@ public class SimuladorCombate
         Console.WriteLine("Resultados gerados.");
     }
 
-    // A função CalcularDano foi removida pois sua lógica foi movida para dentro
-    // de SimularRodadaCombate para garantir o uso correto do índice 'i'.
 
     public static long SimularRodadaCombateSIMD(PersonagemVetorizado atacantes, PersonagemVetorizado defensores)
     {
@@ -30,8 +26,9 @@ public class SimuladorCombate
         int i = 0;
         int bloco = Vector<int>.Count;
         Vector<int> cem = new Vector<int>(100);
+        Vector<int> vBase = new Vector<int>(0);
 
-        // Loop SIMD principal
+
         for (; i <= atacantes.Ataque.Length - bloco; i += bloco)
         {
             var vAtaque = new Vector<int>(atacantes.Ataque, i);
@@ -45,15 +42,14 @@ public class SimuladorCombate
             var vDanoCritico = Vector.Divide(Vector.Multiply(vDanoBase, vMultCritico), cem);
             var vDanoFinal = Vector.ConditionalSelect(vMascaraCritico, vDanoCritico, vDanoBase);
 
-            // OTIMIZAÇÃO: Usando a forma de acumulação recomendada
-            danoTotalAcumulado += Vector.Sum(vDanoFinal);
-        }
+            vBase += vDanoFinal;
 
-        // Loop de limpeza (restante)
+        }
+        danoTotalAcumulado += Vector.Sum(vBase);
+
         for (; i < atacantes.Ataque.Length; i++)
         {
             int danoBase = Math.Max(1, atacantes.Ataque[i] - defensores.Defesa[i]);
-            // BUG 2 CORRIGIDO: A lógica agora é a mesma do SIMD (menor que)
             if (vetorEhCritico[i] < atacantes.ChanceCritico[i])
             {
                 danoBase = (danoBase * atacantes.MultCritico[i]) / 100;

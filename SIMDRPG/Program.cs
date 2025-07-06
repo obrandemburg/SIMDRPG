@@ -5,7 +5,7 @@ class Program
 {
     static void Main()
     {
-        const int tamanhoExercito = 500_000; // Meio milhão de personagens!
+        const int tamanhoExercito = 10_000_000; // Meio milhão de personagens!
 
         Personagem[] atacantes = SimuladorCombate.GerarExercito(tamanhoExercito, "atacante");
         Personagem[] defensores = SimuladorCombate.GerarExercito(tamanhoExercito, "defensor");
